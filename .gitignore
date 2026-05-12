@@ -1,0 +1,13 @@
+# Editor swap / backup files
+*.bak
+*.swp
+*.tmp
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Build artifacts (if you later add a packager)
+.release/
+release/

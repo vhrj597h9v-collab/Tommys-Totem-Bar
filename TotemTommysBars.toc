@@ -1,0 +1,13 @@
+## Interface: 11507
+## Title: Totem Tommys Bars
+## Notes: Movable shaman utility bar — totems, imbues, Lightning Shield, utility, with dropdowns and missing-buff alerts
+## Version: 0.2
+## SavedVariables: TotemTommysBarsDB, ShearsShamanBarDB
+
+Data.lua
+Core.lua
+Options.lua
+# Bindings.xml is intentionally NOT listed here — Blizzard auto-loads
+# any file named "Bindings.xml" at the addon root. Listing it in the
+# TOC routes it through the regular XML parser, which doesn't know
+# about <Binding> tags and produces "Unrecognized XML: Binding" spam.

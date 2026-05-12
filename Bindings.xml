@@ -1,0 +1,71 @@
+<Bindings>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_MOD_NOTE" description="Whichever modifier is selected in Options → Bar appearance → Main Cycle Modifier (Shift / Alt / Ctrl) will turn any 'Drop' binding into the matching 'Cycle' action when held." header="TTB_HEADER_CYCLEMOD" category="Totem Tommys Bars">
+		-- info-only entry; never bind
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_STACK" description="Drop the next totem in the active sequence." header="TTB_HEADER_SEQUENCE" category="Totem Tommys Bars">
+		TotemTommysBars_Stack:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_SEQUENCE" description="Cycle to the next saved sequence." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.sequence()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_TOTEM_FIRE" description="Drop the active Fire totem." header="TTB_HEADER_TOTEMS" category="Totem Tommys Bars">
+		TotemTommysBars_Totem_fire:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_FIRE" description="Cycle to the next Fire totem." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.fire()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_TOTEM_WATER" description="Drop the active Water totem." category="Totem Tommys Bars">
+		TotemTommysBars_Totem_water:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_WATER" description="Cycle to the next Water totem." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.water()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_TOTEM_EARTH" description="Drop the active Earth totem." category="Totem Tommys Bars">
+		TotemTommysBars_Totem_earth:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_EARTH" description="Cycle to the next Earth totem." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.earth()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_TOTEM_AIR" description="Drop the active Air totem." category="Totem Tommys Bars">
+		TotemTommysBars_Totem_air:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_AIR" description="Cycle to the next Air totem." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.air()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_TOTEMSTACK" description="Load the active Totem Stack preset." header="TTB_HEADER_TOTEMSTACK" category="Totem Tommys Bars">
+		TotemTommysBars_TotemStackSwitch:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_TOTEMSTACK" description="Cycle to the next saved Totem Stack." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.totemStack()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_MH" description="Cast the configured mainhand imbue." header="TTB_HEADER_IMBUES" category="Totem Tommys Bars">
+		TotemTommysBars_MH:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_OH" description="Cast the configured offhand imbue." category="Totem Tommys Bars">
+		TotemTommysBars_OH:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_LS" description="Cast Lightning Shield." category="Totem Tommys Bars">
+		TotemTommysBars_LS:Click("LeftButton")
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_UTIL_1" description="Cast Utility slot 1." header="TTB_HEADER_UTILITY" category="Totem Tommys Bars">
+		TotemTommysBars_Util_1:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_UTIL_1" description="Cycle Utility slot 1 through the enabled pool." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.util1()
+	</Binding>
+
+	<Binding name="TOTEMTOMMYSBARS_UTIL_2" description="Cast Utility slot 2." category="Totem Tommys Bars">
+		TotemTommysBars_Util_2:Click("LeftButton")
+	</Binding>
+	<Binding name="TOTEMTOMMYSBARS_CYCLE_UTIL_2" description="Cycle Utility slot 2 through the enabled pool." category="Totem Tommys Bars">
+		TotemTommysBarsCycle.util2()
+	</Binding>
+</Bindings>
