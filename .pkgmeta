@@ -1,0 +1,15 @@
+# CurseForge packager config — https://github.com/BigWigsMods/packager
+package-as: TotemTommysBars
+
+# Files that should NOT be packaged into the release ZIP.
+ignore:
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - README.md
+  - LICENSE  # comment this line out if you want LICENSE inside the addon folder
+
+# License (informational; CurseForge reads from the project settings)
+license-output: LICENSE.txt
+
+# Externals (none for now — addon is library-free).
