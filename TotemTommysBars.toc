@@ -1,7 +1,7 @@
 ## Interface: 11507
 ## Title: Totem Tommys Bars
 ## Notes: Movable shaman utility bar — totems, imbues, Lightning Shield, utility, with dropdowns and missing-buff alerts
-## Version: 0.2
+## Version: @project-version@
 ## SavedVariables: TotemTommysBarsDB, ShearsShamanBarDB
 
 Data.lua
