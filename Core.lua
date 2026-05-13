@@ -1175,34 +1175,58 @@ local function buildButtons()
     -- mana cost.  Iterates all 4 slots so it works as a "clear board"
     -- panic button.
     ------------------------------------------------------------------
-    local recall = CreateFrame("Button", "TotemTommysBars_RecallAll", RecallBar, "ActionButtonTemplate")
+    -- Plain Button (no ActionButtonTemplate) — ActionButtonTemplate's
+    -- secure-action wiring was eating our OnClick handler.  Build the
+    -- visuals manually: icon + normal/highlight/pushed textures.
+    local recall = CreateFrame("Button", "TotemTommysBars_RecallAll", RecallBar)
     recall:SetSize(BUTTON_SIZE, BUTTON_SIZE)
-    recall:RegisterForClicks("AnyUp")
-    if recall.icon then
-        recall.icon:SetTexture("Interface\\Icons\\Spell_Nature_AstralRecal")
-        recall.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    end
-    recall:SetScript("OnClick", function()
-        local destroyed = 0
-        -- Detect which API name is exposed in this client.  Different
-        -- Classic patches have shipped DestroyTotem under slightly
-        -- different names / accessibility.  Try the most common ones.
-        local fn = _G.DestroyTotem or _G.C_TotemInfo and _G.C_TotemInfo.DestroyTotem
-        if not fn then
+    recall:EnableMouse(true)
+    recall:RegisterForClicks("LeftButtonUp", "AnyUp")
+
+    -- Icon
+    recall.icon = recall:CreateTexture(nil, "BACKGROUND")
+    recall.icon:SetAllPoints(recall)
+    recall.icon:SetTexture("Interface\\Icons\\Spell_Nature_AstralRecal")
+    recall.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    -- Standard action-button bezel/border
+    local border = recall:CreateTexture(nil, "OVERLAY")
+    border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+    border:SetPoint("CENTER", recall, "CENTER", 0, -1)
+    border:SetSize(BUTTON_SIZE * 1.8, BUTTON_SIZE * 1.8)
+
+    -- Hover highlight
+    local hl = recall:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints(recall)
+    hl:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+    hl:SetBlendMode("ADD")
+
+    -- Pressed state
+    local pushed = recall:CreateTexture(nil, "ARTWORK")
+    pushed:SetAllPoints(recall)
+    pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    pushed:Hide()
+    recall:SetScript("OnMouseDown", function() pushed:Show() end)
+    recall:SetScript("OnMouseUp",   function() pushed:Hide() end)
+
+    recall:SetScript("OnClick", function(self, button)
+        if not DestroyTotem then
             print("|cffff5555TTB:|r DestroyTotem API not available in this client.")
             return
         end
+        local destroyed = 0
         for slot = 1, 4 do
             local have = GetTotemInfo and select(1, GetTotemInfo(slot)) or false
             if have then
-                fn(slot)
+                DestroyTotem(slot)
                 destroyed = destroyed + 1
             end
         end
         if destroyed == 0 then
             print("|cffffd000TTB:|r no active totems to recall.")
         else
-            print("|cff00ff88TTB:|r recalled " .. destroyed .. " totem" .. (destroyed > 1 and "s." or "."))
+            print("|cff00ff88TTB:|r recalled " .. destroyed .. " totem"
+                .. (destroyed > 1 and "s." or "") .. ".")
         end
         if NS.API and NS.API.updateAll then NS.API.updateAll() end
     end)
