@@ -204,9 +204,11 @@ NS.DEFAULTS = {
                   cd       = true,
                   showActive = false },  -- show duration of whichever totem is actually dropped
     },
-    point      = { "TOP", "UIParent", "TOP", 395.55502319336, -283.55572509766 },
-    imbuePoint = { "TOP", "UIParent", "TOP", 279.36535644531, -148.69831848145 },
-    utilPoint  = { "TOP", "UIParent", "TOP", 392.88833618164, -142.2218170166 },
+    point        = { "TOP", "UIParent", "TOP", 395.55502319336, -283.55572509766 },
+    imbuePoint   = { "TOP", "UIParent", "TOP", 279.36535644531, -148.69831848145 },
+    utilPoint    = { "TOP", "UIParent", "TOP", 392.88833618164, -142.2218170166 },
+    recallPoint  = { "TOP", "UIParent", "TOP", 510, -283 },  -- right of totem bar by default
+    showRecall   = true,
     defaults = {
         fire  = "Searing Totem",
         water = "Healing Stream Totem",

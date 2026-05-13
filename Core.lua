@@ -243,6 +243,23 @@ local TotemStackTitle = TotemStackBar:CreateFontString(nil, "OVERLAY", "GameFont
 TotemStackTitle:SetText("|cffffd200Preset|r")
 TotemStackTitle:Hide()
 
+-- RecallBar — single-button movable frame that, when clicked, calls
+-- DestroyTotem on all four slots.  Classic Era doesn't have the WotLK+
+-- "Totemic Recall" spell, but DestroyTotem(slot) is exposed by the
+-- game's API and silently removes a totem with no cost / GCD / cast.
+local RecallBar = CreateFrame("Frame", "TotemTommysBarsRecallBar", UIParent, "BackdropTemplate")
+RecallBar:EnableMouse(true)
+RecallBar:SetMovable(true)
+RecallBar:RegisterForDrag("LeftButton")
+if RecallBar.SetBackdrop then
+    RecallBar:SetBackdrop({
+        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true, tileSize = 16, edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 },
+    })
+end
+
 ------------------------------------------------------------------------
 -- Buttons
 ------------------------------------------------------------------------
@@ -1151,6 +1168,37 @@ local function buildButtons()
     Bar.mhButton  = mh
     Bar.ohButton  = oh
     ImbueBar.order = { mh, oh, ls }
+
+    ------------------------------------------------------------------
+    -- Recall All — single non-secure button parented to RecallBar.
+    -- DestroyTotem(slot) is a plain API call, no spell, no GCD, no
+    -- mana cost.  Iterates all 4 slots so it works as a "clear board"
+    -- panic button.
+    ------------------------------------------------------------------
+    local recall = CreateFrame("Button", "TotemTommysBars_RecallAll", RecallBar, "ActionButtonTemplate")
+    recall:SetSize(BUTTON_SIZE, BUTTON_SIZE)
+    if recall.icon then
+        -- "Boot to the rear" / pull icon: Spell_Nature_AstralRecal works
+        -- thematically for "recall" even without the spell.
+        recall.icon:SetTexture("Interface\\Icons\\Spell_Nature_AstralRecal")
+        recall.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    end
+    recall:SetScript("OnClick", function()
+        for slot = 1, 4 do
+            if DestroyTotem then DestroyTotem(slot) end
+        end
+        if NS.API and NS.API.updateAll then NS.API.updateAll() end
+    end)
+    recall:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("|cffffd200Recall All Totems|r", 1, 1, 1)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Instantly destroys all four active totems.", 0.9, 0.9, 0.9, true)
+        GameTooltip:AddLine("No mana cost, no GCD, works in combat.", 0.6, 0.85, 0.6, true)
+        GameTooltip:Show()
+    end)
+    recall:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    Bar.recallButton = recall
 end
 
 ------------------------------------------------------------------------
@@ -1208,11 +1256,12 @@ local function layout()
     local combatNow = inCombat()
 
     -- Master hide: shift-clicking the minimap button toggles this.
-    -- Hides all five bars wholesale until toggled back on.
+    -- Hides every bar wholesale until toggled back on.
     if DB and DB.barsHidden then
         if not combatNow then
             Bar:Hide(); ImbueBar:Hide(); UtilBar:Hide()
             StackBar:Hide(); TotemStackBar:Hide()
+            RecallBar:Hide()
         end
         return
     end
@@ -1372,6 +1421,46 @@ local function layout()
         placeAdjacent(TotemStackBar, tsSw, "right")
     else
         TotemStackBar:Hide()
+    end
+
+    -- Recall bar — standalone movable single-button frame.  Position
+    -- is saved in DB.recallPoint.  Lock state mirrors the global Lock
+    -- bar checkbox (drag enabled only when unlocked).
+    do
+        local rb = Bar.recallButton
+        if rb and DB.showRecall ~= false then
+            RecallBar:Show()
+            local pad = BAR_PAD or 6
+            local size = (BUTTON_SIZE or 36) + pad * 2
+            RecallBar:SetSize(size, size)
+            rb:ClearAllPoints()
+            rb:SetPoint("TOPLEFT", RecallBar, "TOPLEFT", pad, -pad)
+            RecallBar:SetScale(DB.scale or 1.0)
+            RecallBar:ClearAllPoints()
+            local p = DB.recallPoint or { "CENTER", "UIParent", "CENTER", 0, 0 }
+            RecallBar:SetPoint(p[1], _G[p[2]] or UIParent, p[3], p[4] or 0, p[5] or 0)
+            if RecallBar.SetBackdropBorderColor then
+                if DB.locked then
+                    RecallBar:SetBackdropColor(0, 0, 0, 0)
+                    RecallBar:SetBackdropBorderColor(0, 0, 0, 0)
+                    RecallBar:EnableMouse(false)
+                    RecallBar:SetScript("OnDragStart", nil)
+                    RecallBar:SetScript("OnDragStop", nil)
+                else
+                    RecallBar:SetBackdropColor(0.05, 0.05, 0.07, 0.6)
+                    RecallBar:SetBackdropBorderColor(0.85, 0.7, 0.2, 1)
+                    RecallBar:EnableMouse(true)
+                    RecallBar:SetScript("OnDragStart", function(self) self:StartMoving() end)
+                    RecallBar:SetScript("OnDragStop", function(self)
+                        self:StopMovingOrSizing()
+                        local pt, _, rpt, x, y = self:GetPoint()
+                        DB.recallPoint = { pt, "UIParent", rpt, x, y }
+                    end)
+                end
+            end
+        else
+            RecallBar:Hide()
+        end
     end
 end
 
@@ -2216,13 +2305,15 @@ NS.API = {
         -- above); otherwise use the factory defaults from NS.DEFAULTS.
         local custom = DB.userDefaultPoints
         if custom then
-            DB.point      = deepcopy(custom.point)      or deepcopy(NS.DEFAULTS.point)
-            DB.imbuePoint = deepcopy(custom.imbuePoint) or deepcopy(NS.DEFAULTS.imbuePoint)
-            DB.utilPoint  = deepcopy(custom.utilPoint)  or deepcopy(NS.DEFAULTS.utilPoint)
+            DB.point       = deepcopy(custom.point)       or deepcopy(NS.DEFAULTS.point)
+            DB.imbuePoint  = deepcopy(custom.imbuePoint)  or deepcopy(NS.DEFAULTS.imbuePoint)
+            DB.utilPoint   = deepcopy(custom.utilPoint)   or deepcopy(NS.DEFAULTS.utilPoint)
+            DB.recallPoint = deepcopy(custom.recallPoint) or deepcopy(NS.DEFAULTS.recallPoint)
         else
-            DB.point      = deepcopy(NS.DEFAULTS.point)
-            DB.imbuePoint = deepcopy(NS.DEFAULTS.imbuePoint)
-            DB.utilPoint  = deepcopy(NS.DEFAULTS.utilPoint)
+            DB.point       = deepcopy(NS.DEFAULTS.point)
+            DB.imbuePoint  = deepcopy(NS.DEFAULTS.imbuePoint)
+            DB.utilPoint   = deepcopy(NS.DEFAULTS.utilPoint)
+            DB.recallPoint = deepcopy(NS.DEFAULTS.recallPoint)
         end
 
         -- Re-render everything from the new state.
@@ -2383,18 +2474,20 @@ SlashCmdList.TTB = function(msg)
                 tostring(p[4]), tostring(p[5]))
         end
         print("|cff00ff88TTB:|r current bar positions —")
-        print("  point      = " .. fmt(DB.point))
-        print("  imbuePoint = " .. fmt(DB.imbuePoint))
-        print("  utilPoint  = " .. fmt(DB.utilPoint))
+        print("  point       = " .. fmt(DB.point))
+        print("  imbuePoint  = " .. fmt(DB.imbuePoint))
+        print("  utilPoint   = " .. fmt(DB.utilPoint))
+        print("  recallPoint = " .. fmt(DB.recallPoint))
         print("Use |cff7ec8ff/ttb savepos|r to bake these as your 'Default Settings' positions.")
     elseif cmd == "savepos" then
         -- Snapshot current positions into DB.userDefaultPoints — the
         -- "Default Settings" button (resetAllDefaults) will use these
         -- instead of the hard-coded NS.DEFAULTS values when present.
         DB.userDefaultPoints = {
-            point      = deepcopy(DB.point),
-            imbuePoint = deepcopy(DB.imbuePoint),
-            utilPoint  = deepcopy(DB.utilPoint),
+            point       = deepcopy(DB.point),
+            imbuePoint  = deepcopy(DB.imbuePoint),
+            utilPoint   = deepcopy(DB.utilPoint),
+            recallPoint = deepcopy(DB.recallPoint),
         }
         print("|cff00ff88TTB:|r current bar positions saved as your personal defaults. 'Default Settings' will now snap to here.")
     elseif cmd == "clearpos" then
