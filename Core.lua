@@ -1177,15 +1177,32 @@ local function buildButtons()
     ------------------------------------------------------------------
     local recall = CreateFrame("Button", "TotemTommysBars_RecallAll", RecallBar, "ActionButtonTemplate")
     recall:SetSize(BUTTON_SIZE, BUTTON_SIZE)
+    recall:RegisterForClicks("AnyUp")
     if recall.icon then
-        -- "Boot to the rear" / pull icon: Spell_Nature_AstralRecal works
-        -- thematically for "recall" even without the spell.
         recall.icon:SetTexture("Interface\\Icons\\Spell_Nature_AstralRecal")
         recall.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     end
     recall:SetScript("OnClick", function()
+        local destroyed = 0
+        -- Detect which API name is exposed in this client.  Different
+        -- Classic patches have shipped DestroyTotem under slightly
+        -- different names / accessibility.  Try the most common ones.
+        local fn = _G.DestroyTotem or _G.C_TotemInfo and _G.C_TotemInfo.DestroyTotem
+        if not fn then
+            print("|cffff5555TTB:|r DestroyTotem API not available in this client.")
+            return
+        end
         for slot = 1, 4 do
-            if DestroyTotem then DestroyTotem(slot) end
+            local have = GetTotemInfo and select(1, GetTotemInfo(slot)) or false
+            if have then
+                fn(slot)
+                destroyed = destroyed + 1
+            end
+        end
+        if destroyed == 0 then
+            print("|cffffd000TTB:|r no active totems to recall.")
+        else
+            print("|cff00ff88TTB:|r recalled " .. destroyed .. " totem" .. (destroyed > 1 and "s." or "."))
         end
         if NS.API and NS.API.updateAll then NS.API.updateAll() end
     end)
