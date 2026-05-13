@@ -1,7 +1,8 @@
 -- Core.lua — Totem Tommys Bars
 -- Movable bar of secure buttons for Classic Era shaman: 4 totem elements,
--- a stack button (castsequence), Totemic Recall, MH/OH imbues, Lightning
--- Shield, utility slot.  Right-click any button to open its dropdown.
+-- a sequence button (castsequence), Totem Stack switcher, MH/OH imbues,
+-- Lightning Shield, two utility slots.  Right-click any button for its
+-- dropdown menu.
 
 local addonName, NS = ...
 
@@ -242,23 +243,6 @@ end
 local TotemStackTitle = TotemStackBar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 TotemStackTitle:SetText("|cffffd200Preset|r")
 TotemStackTitle:Hide()
-
--- RecallBar — single-button movable frame that, when clicked, calls
--- DestroyTotem on all four slots.  Classic Era doesn't have the WotLK+
--- "Totemic Recall" spell, but DestroyTotem(slot) is exposed by the
--- game's API and silently removes a totem with no cost / GCD / cast.
-local RecallBar = CreateFrame("Frame", "TotemTommysBarsRecallBar", UIParent, "BackdropTemplate")
-RecallBar:EnableMouse(true)
-RecallBar:SetMovable(true)
-RecallBar:RegisterForDrag("LeftButton")
-if RecallBar.SetBackdrop then
-    RecallBar:SetBackdrop({
-        bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 },
-    })
-end
 
 ------------------------------------------------------------------------
 -- Buttons
@@ -1169,77 +1153,6 @@ local function buildButtons()
     Bar.ohButton  = oh
     ImbueBar.order = { mh, oh, ls }
 
-    ------------------------------------------------------------------
-    -- Recall All — single non-secure button parented to RecallBar.
-    -- DestroyTotem(slot) is a plain API call, no spell, no GCD, no
-    -- mana cost.  Iterates all 4 slots so it works as a "clear board"
-    -- panic button.
-    ------------------------------------------------------------------
-    -- Plain Button (no ActionButtonTemplate) — ActionButtonTemplate's
-    -- secure-action wiring was eating our OnClick handler.  Build the
-    -- visuals manually: icon + normal/highlight/pushed textures.
-    local recall = CreateFrame("Button", "TotemTommysBars_RecallAll", RecallBar)
-    recall:SetSize(BUTTON_SIZE, BUTTON_SIZE)
-    recall:EnableMouse(true)
-    recall:RegisterForClicks("LeftButtonUp", "AnyUp")
-
-    -- Icon
-    recall.icon = recall:CreateTexture(nil, "BACKGROUND")
-    recall.icon:SetAllPoints(recall)
-    recall.icon:SetTexture("Interface\\Icons\\Spell_Nature_AstralRecal")
-    recall.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-    -- Standard action-button bezel/border
-    local border = recall:CreateTexture(nil, "OVERLAY")
-    border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
-    border:SetPoint("CENTER", recall, "CENTER", 0, -1)
-    border:SetSize(BUTTON_SIZE * 1.8, BUTTON_SIZE * 1.8)
-
-    -- Hover highlight
-    local hl = recall:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints(recall)
-    hl:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
-    hl:SetBlendMode("ADD")
-
-    -- Pressed state
-    local pushed = recall:CreateTexture(nil, "ARTWORK")
-    pushed:SetAllPoints(recall)
-    pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
-    pushed:Hide()
-    recall:SetScript("OnMouseDown", function() pushed:Show() end)
-    recall:SetScript("OnMouseUp",   function() pushed:Hide() end)
-
-    recall:SetScript("OnClick", function(self, button)
-        if not DestroyTotem then
-            print("|cffff5555TTB:|r DestroyTotem API not available in this client.")
-            return
-        end
-        local destroyed = 0
-        for slot = 1, 4 do
-            local have = GetTotemInfo and select(1, GetTotemInfo(slot)) or false
-            if have then
-                DestroyTotem(slot)
-                destroyed = destroyed + 1
-            end
-        end
-        if destroyed == 0 then
-            print("|cffffd000TTB:|r no active totems to recall.")
-        else
-            print("|cff00ff88TTB:|r recalled " .. destroyed .. " totem"
-                .. (destroyed > 1 and "s." or "") .. ".")
-        end
-        if NS.API and NS.API.updateAll then NS.API.updateAll() end
-    end)
-    recall:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("|cffffd200Recall All Totems|r", 1, 1, 1)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine("Instantly destroys all four active totems.", 0.9, 0.9, 0.9, true)
-        GameTooltip:AddLine("No mana cost, no GCD, works in combat.", 0.6, 0.85, 0.6, true)
-        GameTooltip:Show()
-    end)
-    recall:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    Bar.recallButton = recall
 end
 
 ------------------------------------------------------------------------
@@ -1302,7 +1215,6 @@ local function layout()
         if not combatNow then
             Bar:Hide(); ImbueBar:Hide(); UtilBar:Hide()
             StackBar:Hide(); TotemStackBar:Hide()
-            RecallBar:Hide()
         end
         return
     end
@@ -1462,46 +1374,6 @@ local function layout()
         placeAdjacent(TotemStackBar, tsSw, "right")
     else
         TotemStackBar:Hide()
-    end
-
-    -- Recall bar — standalone movable single-button frame.  Position
-    -- is saved in DB.recallPoint.  Lock state mirrors the global Lock
-    -- bar checkbox (drag enabled only when unlocked).
-    do
-        local rb = Bar.recallButton
-        if rb and DB.showRecall ~= false then
-            RecallBar:Show()
-            local pad = BAR_PAD or 6
-            local size = (BUTTON_SIZE or 36) + pad * 2
-            RecallBar:SetSize(size, size)
-            rb:ClearAllPoints()
-            rb:SetPoint("TOPLEFT", RecallBar, "TOPLEFT", pad, -pad)
-            RecallBar:SetScale(DB.scale or 1.0)
-            RecallBar:ClearAllPoints()
-            local p = DB.recallPoint or { "CENTER", "UIParent", "CENTER", 0, 0 }
-            RecallBar:SetPoint(p[1], _G[p[2]] or UIParent, p[3], p[4] or 0, p[5] or 0)
-            if RecallBar.SetBackdropBorderColor then
-                if DB.locked then
-                    RecallBar:SetBackdropColor(0, 0, 0, 0)
-                    RecallBar:SetBackdropBorderColor(0, 0, 0, 0)
-                    RecallBar:EnableMouse(false)
-                    RecallBar:SetScript("OnDragStart", nil)
-                    RecallBar:SetScript("OnDragStop", nil)
-                else
-                    RecallBar:SetBackdropColor(0.05, 0.05, 0.07, 0.6)
-                    RecallBar:SetBackdropBorderColor(0.85, 0.7, 0.2, 1)
-                    RecallBar:EnableMouse(true)
-                    RecallBar:SetScript("OnDragStart", function(self) self:StartMoving() end)
-                    RecallBar:SetScript("OnDragStop", function(self)
-                        self:StopMovingOrSizing()
-                        local pt, _, rpt, x, y = self:GetPoint()
-                        DB.recallPoint = { pt, "UIParent", rpt, x, y }
-                    end)
-                end
-            end
-        else
-            RecallBar:Hide()
-        end
     end
 end
 
@@ -1670,7 +1542,6 @@ function buttonSpellName(b)  -- assigning to forward-declared local
     elseif b.kind == "oh"  then return DB.defaults.oh
     elseif b.kind == "util" then return DB.utilSelected and DB.utilSelected[b.utilSlot]
     elseif b.kind == "ls"   then return NS.LIGHTNING_SHIELD
-    elseif b.kind == "recall" then return NS.TOTEMIC_RECALL
     elseif b.kind == "stack" then
         local set = DB.sets[DB.activeSet]
         return set and set[1] or nil
@@ -2346,15 +2217,13 @@ NS.API = {
         -- above); otherwise use the factory defaults from NS.DEFAULTS.
         local custom = DB.userDefaultPoints
         if custom then
-            DB.point       = deepcopy(custom.point)       or deepcopy(NS.DEFAULTS.point)
-            DB.imbuePoint  = deepcopy(custom.imbuePoint)  or deepcopy(NS.DEFAULTS.imbuePoint)
-            DB.utilPoint   = deepcopy(custom.utilPoint)   or deepcopy(NS.DEFAULTS.utilPoint)
-            DB.recallPoint = deepcopy(custom.recallPoint) or deepcopy(NS.DEFAULTS.recallPoint)
+            DB.point      = deepcopy(custom.point)      or deepcopy(NS.DEFAULTS.point)
+            DB.imbuePoint = deepcopy(custom.imbuePoint) or deepcopy(NS.DEFAULTS.imbuePoint)
+            DB.utilPoint  = deepcopy(custom.utilPoint)  or deepcopy(NS.DEFAULTS.utilPoint)
         else
-            DB.point       = deepcopy(NS.DEFAULTS.point)
-            DB.imbuePoint  = deepcopy(NS.DEFAULTS.imbuePoint)
-            DB.utilPoint   = deepcopy(NS.DEFAULTS.utilPoint)
-            DB.recallPoint = deepcopy(NS.DEFAULTS.recallPoint)
+            DB.point      = deepcopy(NS.DEFAULTS.point)
+            DB.imbuePoint = deepcopy(NS.DEFAULTS.imbuePoint)
+            DB.utilPoint  = deepcopy(NS.DEFAULTS.utilPoint)
         end
 
         -- Re-render everything from the new state.
@@ -2515,20 +2384,18 @@ SlashCmdList.TTB = function(msg)
                 tostring(p[4]), tostring(p[5]))
         end
         print("|cff00ff88TTB:|r current bar positions —")
-        print("  point       = " .. fmt(DB.point))
-        print("  imbuePoint  = " .. fmt(DB.imbuePoint))
-        print("  utilPoint   = " .. fmt(DB.utilPoint))
-        print("  recallPoint = " .. fmt(DB.recallPoint))
+        print("  point      = " .. fmt(DB.point))
+        print("  imbuePoint = " .. fmt(DB.imbuePoint))
+        print("  utilPoint  = " .. fmt(DB.utilPoint))
         print("Use |cff7ec8ff/ttb savepos|r to bake these as your 'Default Settings' positions.")
     elseif cmd == "savepos" then
         -- Snapshot current positions into DB.userDefaultPoints — the
         -- "Default Settings" button (resetAllDefaults) will use these
         -- instead of the hard-coded NS.DEFAULTS values when present.
         DB.userDefaultPoints = {
-            point       = deepcopy(DB.point),
-            imbuePoint  = deepcopy(DB.imbuePoint),
-            utilPoint   = deepcopy(DB.utilPoint),
-            recallPoint = deepcopy(DB.recallPoint),
+            point      = deepcopy(DB.point),
+            imbuePoint = deepcopy(DB.imbuePoint),
+            utilPoint  = deepcopy(DB.utilPoint),
         }
         print("|cff00ff88TTB:|r current bar positions saved as your personal defaults. 'Default Settings' will now snap to here.")
     elseif cmd == "clearpos" then
